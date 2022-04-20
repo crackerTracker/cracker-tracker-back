@@ -20,7 +20,8 @@ const todoSchema = new Schema({
         default: false,
     },
 
-    groupId: {
+    // populate before sending to client
+    group: {
         type: Types.ObjectId, // reference to a group document
     },
 

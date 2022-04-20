@@ -34,7 +34,25 @@ router.post(
             }
 
             const hashedPassword = await bcrypt.hash(password, 12);
-            const user = new User({ email, password: hashedPassword });
+            const user = new User({
+                email,
+                password: hashedPassword,
+
+                pomodoros: {
+                    plan: [],
+                    done: [],
+                },
+
+                todoSection: {
+                    todos: [],
+                    groups: [],
+                },
+
+                tracker: {
+                    categories: [],
+                    tasks: [],
+                }
+            });
 
             await user.save();
 

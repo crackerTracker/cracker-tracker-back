@@ -1,10 +1,9 @@
-const {Schema} = require('mongoose');
+const {Schema, Types} = require('mongoose');
 
 const categorySchema = new Schema({
     name: {
         type: String,
         required: true,
-        unique: true, // todo уникальное в пределах всей бд или только массива категорий?
     },
 
     color: {

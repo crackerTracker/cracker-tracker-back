@@ -17,15 +17,18 @@ const userSchema = new Schema({
 
     todoSection: {
         type: todoSectionSchema,
+        default: (() => {}),
     },
 
     pomodoros: {
         type: pomodorosSchema,
+        default: (() => {}),
     },
 
     tracker: {
         type: trackerSchema,
-    }
+        default: (() => {}),
+    },
 });
 
 module.exports = userSchema;

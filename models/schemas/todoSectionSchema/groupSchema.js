@@ -1,4 +1,4 @@
-const { Schema } = require('mongoose');
+const { Schema, Types} = require('mongoose');
 
 const groupSchema = new Schema({
     name: {

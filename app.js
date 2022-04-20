@@ -1,7 +1,6 @@
 const express = require('express')
 const config = require('config')
 require('dotenv').config()
-const path = require('path')
 const mongoose = require('mongoose')
 const initRoutes = require('./routes');
 
@@ -18,7 +17,7 @@ async function start() {
         await mongoose.connect(process.env.MONGO_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-        })
+        });
         app.listen(PORT, () => console.log(`App has been started on port ${PORT}...`))
     } catch (e) {
         console.log('Server Error', e.message)
