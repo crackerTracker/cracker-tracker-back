@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
-const config = require('config');
 
-module.exports = (req, res, next) => {
+const authMiddleware = (req, res, next) => {
     if (req.method === 'OPTIONS') {
         return next;
     }
@@ -14,7 +13,7 @@ module.exports = (req, res, next) => {
         }
 
         // should get { userId: ..., ... }
-        const { userId } = jwt.verify(token, config.get('jwtSecret'));
+        const { userId } = jwt.verify(token, process.env.JWT_SECRET);
 
         req.userId = userId;
 
@@ -23,4 +22,6 @@ module.exports = (req, res, next) => {
     } catch (e) {
         res.status(401).json({ message: 'Нет авторизации' });
     }
-}
+};
+
+module.exports = authMiddleware;
