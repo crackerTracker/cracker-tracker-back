@@ -151,6 +151,32 @@ router.post(
     }
 );
 
+// /api/pomodoro/deleteAllPlanned
+router.post(
+    '/deleteAllPlanned',
+    authMiddleware,
+    async (req, res) => {
+        try {
+            const { toDeleteId } = req.body;
+
+            const user = await User.findOne({ _id: req.userId });
+
+            const toDelete = user.pomodoros.plan.id(toDeleteId);
+
+            if (!toDelete) {
+                return res.status(404).json({ message: 'Помидоры по указанному id не найдены' });
+            }
+
+            toDelete.remove();
+            await user.save();
+            res.json(toDelete);
+        }
+        catch (e) {
+            res.status(500).json({message: 'Что-то пошло не так'});
+        }
+    }
+);
+
 // /api/pomodoro/editDone
 router.post(
     '/editDone',
