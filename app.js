@@ -1,12 +1,22 @@
-const express = require('express')
-const config = require('config')
-require('dotenv').config()
-const mongoose = require('mongoose')
+const express = require('express');
+const config = require('config');
+require('dotenv').config();
+const mongoose = require('mongoose');
 const initRoutes = require('./routes');
 
 const app = express();
 
-app.use(express.json({ extended: true }))
+app.use(function (req, res, next) {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Request-Method', 'GET, POST');
+    res.header(
+        'Access-Control-Allow-Headers',
+        'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+    );
+    next();
+});
+
+app.use(express.json({ extended: true }));
 
 initRoutes(app);
 
@@ -18,10 +28,10 @@ async function start() {
             useNewUrlParser: true,
             useUnifiedTopology: true,
         });
-        app.listen(PORT, () => console.log(`App has been started on port ${PORT}...`))
+        app.listen(PORT, () => console.log(`App has been started on port ${PORT}...`));
     } catch (e) {
-        console.log('Server Error', e.message)
-        process.exit(1)
+        console.log('Server Error', e.message);
+        process.exit(1);
     }
 }
 
