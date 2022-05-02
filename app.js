@@ -6,7 +6,7 @@ const initRoutes = require('./routes');
 
 const app = express();
 
-app.use(function (req, res, next) {
+app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Request-Method', 'GET, POST');
     res.header(
