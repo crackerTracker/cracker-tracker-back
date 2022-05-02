@@ -7,7 +7,7 @@ const plannedPomodoroSchema = new Schema({
     },
     pomodorosAmount: {
         type: Number,
-        default: 0,
+        required: true,
     },
 });
 
