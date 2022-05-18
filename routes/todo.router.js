@@ -19,7 +19,7 @@ router.get(
             let populatedTodos = todos;
 
             if (todos.length && user.todoSection.groups.length) {
-                populatedTodos = todos.map(({id, name, done, deadline, note, isImportant, group, today}) => {
+                populatedTodos = todos.map(({id, name, done, deadline, note, isImportant, group, today, subTodos}) => {
                     const groupToPopulate = user.todoSection.groups.id(group);
 
                     return {
@@ -31,6 +31,7 @@ router.get(
                         isImportant,
                         today,
                         group: groupToPopulate ? groupToPopulate : null,
+                        subTodos: subTodos ? subTodos : [],
                     }
                 });
             }
@@ -49,9 +50,10 @@ router.post(
     async (req, res) => {
         try {
             // required: name
-            // groupId should be 24 characters hex string
+            // groupId should be 24 characters hex string or null
             // deadline should be as "2017-06-01T23:59:59.999Z" string
-            const { name, done, deadline, note, isImportant, groupId, today } = req.body;
+            // if subTodos is passed, it should be array of subTodo objects, in a subTodo object name is required
+            const { name, done, deadline, note, isImportant, groupId, today, subTodos } = req.body;
 
             if (typeof name !== 'string' || name.trim() === '') {
                 return res.status(400).json({ message: 'Некорректное имя todo' })
@@ -73,12 +75,49 @@ router.post(
                 return res.status(400).json({ message: 'Некорректное поле isImportant' })
             }
 
-            if (groupId !== undefined && !isValidIdString(groupId)) {
+            if (groupId !== undefined && groupId !== null && !isValidIdString(groupId)) {
                 return res.status(400).json({ message: 'Некорректный id группы' })
             }
 
             if (today !== undefined && typeof today !== 'boolean') {
                 return res.status(400).json({ message: 'Некорректное поле today' })
+            }
+
+            if (subTodos !== undefined && !Array.isArray(subTodos)) {
+                return res.status(400).json({ message: 'subTodos не является массивом' })
+            }
+
+            if (subTodos !== undefined) {
+                for (let i = 0; i < subTodos.length; i++) {
+                    const subTodo = subTodos[i];
+                    const fields = Object.keys(subTodos[i]);
+
+                    if (fields.length === 2) {
+                        if (
+                            !fields.includes('name')
+                            || !fields.includes('done')
+                            || typeof subTodo.name !== 'string'
+                            || subTodo.name.trim() === ''
+                            || typeof subTodo.done !== 'boolean'
+                        ) {
+                            return res.status(400).json({ message: 'Некорректные значения subTodo' });
+                        }
+                    }
+                    else if (fields.length === 1) {
+                        if (
+                            !fields.includes('name')
+                            || typeof subTodo.name !== 'string'
+                            || subTodo.name.trim() === ''
+                        ) {
+                            return res.status(400).json({ message: 'Некорректные значения subTodo' });
+                        }
+                    }
+                    else {
+                        return res.status(400).json({ message: 'Некорректные значения subTodo' });
+                    }
+
+                    subTodos[i].name = subTodos[i].name.trim();
+                }
             }
 
             const user = await User.findOne({ _id: req.userId });;
@@ -99,7 +138,8 @@ router.post(
                 note: note ? note.trim() : undefined,
                 isImportant,
                 group: groupId,
-                today
+                today,
+                subTodos,
             };
 
             user.todoSection.todos.push(toPush);
@@ -117,6 +157,7 @@ router.post(
                 isImportant: created.isImportant,
                 today: created.today,
                 group: existingGroup, // object or null
+                subTodos: created.subTodos ? created.subTodos : [],
             });
         }
         catch (e) {
@@ -146,6 +187,9 @@ router.post(
                 return res.status(404).json({ message: 'Todo по указанному id не найден' });
             }
 
+            // to populate field if subTodos is undefined
+            toDelete.subTodos = toDelete.subTodos ? toDelete.subTodos : [];
+
             toDelete.remove();
 
             await user.save();
@@ -166,6 +210,8 @@ router.post(
         try {
             // required: toEditId
             // date should be as "2022-04-21T23:59:59.999Z" string
+            // groupId should be 24 characters hex string or null
+            // if subTodos is passed, it should be array of subTodo objects, in a subTodo object name is required
             const {
                 toEditId,
                 name,
@@ -174,7 +220,8 @@ router.post(
                 note,
                 isImportant,
                 today,
-                groupId
+                groupId,
+                subTodos
             } = req.body;
 
             if (!isValidIdString(toEditId)) {
@@ -201,12 +248,50 @@ router.post(
                 return res.status(400).json({ message: 'Некорректное поле isImportant' })
             }
 
-            if (groupId !== undefined && !isValidIdString(groupId)) {
+            if (groupId !== undefined && groupId !== null && !isValidIdString(groupId)) {
                 return res.status(400).json({ message: 'Некорректный id группы' })
             }
 
             if (today !== undefined && typeof today !== 'boolean') {
                 return res.status(400).json({ message: 'Некорректное поле today' })
+            }
+
+
+            if (subTodos !== undefined && !Array.isArray(subTodos)) {
+                return res.status(400).json({ message: 'subTodos не является массивом' })
+            }
+
+            if (subTodos !== undefined) {
+                for (let i = 0; i < subTodos.length; i++) {
+                    const subTodo = subTodos[i];
+                    const fields = Object.keys(subTodos[i]);
+
+                    if (fields.length === 2) {
+                        if (
+                            !fields.includes('name')
+                            || !fields.includes('done')
+                            || typeof subTodo.name !== 'string'
+                            || subTodo.name.trim() === ''
+                            || typeof subTodo.done !== 'boolean'
+                        ) {
+                            return res.status(400).json({ message: 'Некорректные значения subTodo' });
+                        }
+                    }
+                    else if (fields.length === 1) {
+                        if (
+                            !fields.includes('name')
+                            || typeof subTodo.name !== 'string'
+                            || subTodo.name.trim() === ''
+                        ) {
+                            return res.status(400).json({ message: 'Некорректные значения subTodo' });
+                        }
+                    }
+                    else {
+                        return res.status(400).json({ message: 'Некорректные значения subTodo' });
+                    }
+
+                    subTodos[i].name = subTodos[i].name.trim();
+                }
             }
 
             const user = await User.findOne({ _id: req.userId });
@@ -225,8 +310,11 @@ router.post(
                     return res.status(404).json({ message: "Группа по указанному id не была найдена" })
                 }
             }
-            else {
+            else if (groupId !== null) {
                 groupObj = user.todoSection.groups.id(toEdit.group); // object or null
+            }
+            else {
+                groupObj = null;
             }
 
             toEdit.name = name ? name.trim() : toEdit.name;
@@ -235,7 +323,8 @@ router.post(
             toEdit.note = note ? note.trim() : toEdit.note;
             toEdit.isImportant = isImportant ? isImportant : toEdit.isImportant;
             toEdit.today = today ? today : toEdit.today;
-            toEdit.group = groupId ? groupId : toEdit.group;
+            toEdit.group = groupId || (groupId === null) ? groupId : toEdit.group;
+            toEdit.subTodos = subTodos ? subTodos : toEdit.subTodos;
 
             const response = {
                 _id: toEditId,
@@ -246,6 +335,7 @@ router.post(
                 isImportant: toEdit.isImportant,
                 today: toEdit.today,
                 group: groupObj,
+                subTodos: toEdit.subTodos ? toEdit.subTodos : [],
             };
 
             await user.save();
