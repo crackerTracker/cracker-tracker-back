@@ -51,7 +51,7 @@ router.post(
         try {
             // required: name
             // groupId should be 24 characters hex string or null
-            // deadline should be as "2017-06-01T23:59:59.999Z" string
+            // deadline should be as "2017-06-01T23:59:59.999Z" string or null
             // if subTodos is passed, it should be array of subTodo objects, in a subTodo object name is required
             const { name, done, deadline, note, isImportant, groupId, today, subTodos } = req.body;
 
@@ -63,7 +63,7 @@ router.post(
                 return res.status(400).json({ message: 'Некорректное значение done' })
             }
 
-            if (deadline !== undefined && !isUTCEdgeDateString(deadline)) {
+            if (deadline !== undefined && deadline !== null && !isUTCEdgeDateString(deadline)) {
                 return res.status(400).json({ message: 'Некорректное значение deadline' })
             }
 
@@ -209,7 +209,7 @@ router.post(
     async (req, res) => {
         try {
             // required: toEditId
-            // date should be as "2022-04-21T23:59:59.999Z" string
+            // date should be as "2022-04-21T23:59:59.999Z" string or null
             // groupId should be 24 characters hex string or null
             // if subTodos is passed, it should be array of subTodo objects, in a subTodo object name is required
             const {
@@ -236,7 +236,7 @@ router.post(
                 return res.status(400).json({ message: 'Некорректное значение done' })
             }
 
-            if (deadline !== undefined && !isUTCEdgeDateString(deadline)) {
+            if (deadline !== undefined && deadline !== null && !isUTCEdgeDateString(deadline)) {
                 return res.status(400).json({ message: 'Некорректное значение deadline' })
             }
 
@@ -256,7 +256,7 @@ router.post(
                 return res.status(400).json({ message: 'Некорректное поле today' })
             }
 
-
+            // todo разрабраться с тем, что айди передавать не надо и таким образом создаются новые сабтуду, а не изменяются новые
             if (subTodos !== undefined && !Array.isArray(subTodos)) {
                 return res.status(400).json({ message: 'subTodos не является массивом' })
             }
@@ -319,7 +319,7 @@ router.post(
 
             toEdit.name = name ? name.trim() : toEdit.name;
             toEdit.done = done ? done : toEdit.done;
-            toEdit.deadline = deadline ? new Date(deadline) : toEdit.deadline;
+            toEdit.deadline = deadline !== undefined ? (deadline === null ? null : new Date(deadline)) : toEdit.deadline;
             toEdit.note = note ? note.trim() : toEdit.note;
             toEdit.isImportant = isImportant ? isImportant : toEdit.isImportant;
             toEdit.today = today ? today : toEdit.today;
