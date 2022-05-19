@@ -318,11 +318,11 @@ router.post(
             }
 
             toEdit.name = name ? name.trim() : toEdit.name;
-            toEdit.done = done ? done : toEdit.done;
+            toEdit.done = done !== undefined ? done : toEdit.done;
             toEdit.deadline = deadline !== undefined ? (deadline === null ? null : new Date(deadline)) : toEdit.deadline;
             toEdit.note = note ? note.trim() : toEdit.note;
-            toEdit.isImportant = isImportant ? isImportant : toEdit.isImportant;
-            toEdit.today = today ? today : toEdit.today;
+            toEdit.isImportant = isImportant !== undefined ? isImportant : toEdit.isImportant;
+            toEdit.today = today !== undefined ? today : toEdit.today;
             toEdit.group = groupId || (groupId === null) ? groupId : toEdit.group;
             toEdit.subTodos = subTodos ? subTodos : toEdit.subTodos;
 
