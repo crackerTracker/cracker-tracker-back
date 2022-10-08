@@ -3,7 +3,7 @@ const User = require('../models/User');
 const authMiddleware = require('../middlewares/auth.middleware');
 const { isNaturalNumber } = require('./../utils/numberValidator');
 const isValidIdString = require('../utils/idValidator');
-const { isUTCDateString } = require('../utils/dateValidators');
+const { isUTCDateString } = require('../utils/dates');
 
 const router = Router();
 
