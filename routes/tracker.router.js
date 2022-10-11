@@ -47,7 +47,10 @@ router.get(
     authMiddleware,
     async (req, res) => {
         // require daysAmount: number = 24, year: number, month: number (counted from 0)
-        const { daysAmount, year, month } = req.body;
+        const { daysAmount: daysAmountString, year: yearString, month: monthString } = req.query;
+        const daysAmount = Number(daysAmountString);
+        const year = Number(yearString);
+        const month = Number(monthString);
 
         if (!isNaturalNumber(daysAmount)) {
             return res.status(400).json({ message: 'Некорректное количество дней' })
