@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const User = require('../models/User');
 const authMiddleware = require('../middlewares/auth.middleware');
-const { isUTCEdgeDateString } = require('../utils/dateValidators');
+const { isUTCEdgeDateString } = require('../utils/dates');
 const isValidIdString = require('../utils/idValidator');
 
 const router = Router();
