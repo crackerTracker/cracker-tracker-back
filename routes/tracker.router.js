@@ -5,6 +5,8 @@ const { isUTCZeroDateString } = require('./../utils/dates');
 const { isNaturalNumber } = require('./../utils/numberValidator');
 const isValidIdString = require('../utils/idValidator');
 const isValidHexColorString = require('../utils/hexColorCodeValidator');
+const {trackerChartType, trackerChartTypesArray} = require("../config/tracker");
+const {isSimpleDateString, simpleDateToUTCZeroDate, getUTCNowZeroDate, getFullDaysDifferenceBetweenDates} = require("../utils/dates");
 
 const router = Router();
 
@@ -605,6 +607,185 @@ router.post(
         catch (e) {
             res.status(500).json({message: 'Что-то пошло не так'});
         }
+    }
+);
+
+// /api/tracker/statistics
+router.get(
+    '/statistics',
+    authMiddleware,
+    async (req, res) => {
+        try {
+            // require start: string (date like MM-DD-YYYY in utc), end?: string (like start date), type: string ('pie' or 'bar')
+            const { start: startDateString, end: endDateString, type: chartType } = req.query;
+
+            if (!chartType
+                || typeof chartType !== 'string'
+                || !trackerChartTypesArray.includes(chartType)
+            ) {
+                return res.status(400).json({ message: 'Некорректно указан тип графика' });
+            }
+
+            if (!startDateString || !isSimpleDateString(startDateString)) {
+                return res.status(400).json({ message: 'Некорректная начальная дата' });
+            }
+
+            if (endDateString !== undefined && !isSimpleDateString(endDateString)) {
+                return res.status(400).json({ message: 'Некорректная конечная дата' });
+            }
+
+            const startDate = simpleDateToUTCZeroDate(startDateString);
+            const endDate = endDateString ? simpleDateToUTCZeroDate(endDateString) : null;
+            const now = getUTCNowZeroDate();
+
+            if (endDate && startDate > endDate) {
+                return res.status(400).json({ message: 'Начальная дата позже конечной' });
+            }
+
+            if (startDate > now) {
+                return res.json([]);
+            }
+
+            const userId = req.userId;
+            const user = await User.findOne({ _id: userId });
+            const tasks = user.tracker.tasks;
+
+            if (chartType === 'pie') {
+                // Map: key - id of category, value - id, color, name and minutesSpent
+                const categoriesToSend = {};
+
+                tasks.forEach((task) => {
+                    // If task date is out of range (if endDate received) or if task date is not startDate
+                    if (endDate
+                        ? task.date < startDate || task.date > endDate
+                        : task.date.getTime() !== startDate.getTime()
+                    ) {
+                        return
+                    }
+
+                    const categoryId = task.category;
+
+                    // If category has been added once, just add task minutes
+                    if (categoriesToSend[categoryId]) {
+                        categoriesToSend[categoryId].minutesSpent += task.minutesSpent;
+                        return;
+                    }
+
+                    // Else find category data and add it to categories for response
+                    const categoryData = user.tracker.categories.id(categoryId);
+
+                    if (!categoryData) {
+                        return
+                    }
+
+                    categoriesToSend[categoryId] = {
+                        _id: categoryId,
+                        name: categoryData.name,
+                        color: categoryData.color,
+                        minutesSpent: task.minutesSpent
+                    }
+                });
+
+                return res.json(Object.values(categoriesToSend).sort((a, b) => b.minutesSpent - a.minutesSpent))
+            }
+
+            if (chartType === 'bar') {
+                /**
+                 * timestampToIndexMap is map like
+                 * {
+                 *     [0]: <some day timestamp>,
+                 *     [1]: <next day timestamp>,
+                 *     [2]: <next next day timestamp>
+                 * }
+                 * Not array for clarity
+                 */
+                const timestampToIndexMap = {};
+
+                // (start and end dates are included to range both)
+                if (endDate) {
+                    for (
+                        let currentDayTimestamp = startDate.getTime(), currentIndex = 0;
+                        currentDayTimestamp <= endDate.getTime();
+                        currentDayTimestamp += 1000 * 3600 * 24, currentIndex++)
+                    {
+                        if (!timestampToIndexMap[currentDayTimestamp]) {
+                            timestampToIndexMap[currentDayTimestamp] = currentIndex;
+                        }
+                    }
+                }
+                else {
+                    timestampToIndexMap[startDate.getTime()] = 0;
+                }
+
+                const daysInRange = Object.keys(timestampToIndexMap).length;
+
+                /**
+                 * categoriesToSend is map: key - category id, value - object like
+                 * {
+                 *  categoryData: {
+                 *      _id: string,
+                 *      name: string,
+                 *      color: string,
+                 *  },
+                 *  minutesPerDay: number[] (elements amount is the same as amount of days between start and end dates)
+                 * }
+                 */
+                const categoriesToSend = {};
+
+                tasks.forEach((task) => {
+                    // If task date is out of range (if endDate received) or if task date is not startDate
+                    if (endDate
+                        ? task.date < startDate || task.date > endDate
+                        : task.date.getTime() !== startDate.getTime()
+                    ) {
+                        return;
+                    }
+
+                    const dayIndex = timestampToIndexMap[task.date.getTime()];
+
+                    const categoryId = task.category;
+
+                    // If category has been added once, just add task minutes to its day
+                    if (categoriesToSend[categoryId]) {
+                        categoriesToSend[categoryId].minutesPerDay[dayIndex] += task.minutesSpent;
+                        return;
+                    }
+
+                    // Else find category data and add it to categories for response
+                    const categoryData = user.tracker.categories.id(categoryId);
+
+                    if (!categoryData) {
+                        return;
+                    }
+
+                    categoriesToSend[categoryId] = {
+                        categoryData: {
+                            _id: categoryId,
+                            name: categoryData.name,
+                            color: categoryData.color,
+                        },
+                        minutesPerDay: new Array(daysInRange).fill(0)
+                    }
+
+                    categoriesToSend[categoryId].minutesPerDay[dayIndex] = task.minutesSpent;
+                });
+
+                return res.json({
+                    // Because keys are numbers,
+                    // timestamps will be sorted from start to end dates
+                    days: Object.keys(timestampToIndexMap)
+                        .map((timestamp) => Number(timestamp)),
+
+                    // Order doesn't make sense
+                    minutesPerCategory: Object.values(categoriesToSend),
+                })
+            }
+        } catch (e) {
+            console.log(e)
+            res.status(500).json({message: 'Что-то пошло не так'});
+        }
+
+        res.status(500).json({message: 'Что-то пошло не так'});
     }
 );
 
