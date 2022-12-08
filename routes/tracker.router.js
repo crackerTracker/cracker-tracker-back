@@ -693,9 +693,9 @@ router.get(
                 /**
                  * timestampToIndexMap is map like
                  * {
-                 *     [0]: <some day timestamp>,
-                 *     [1]: <next day timestamp>,
-                 *     [2]: <next next day timestamp>
+                 *     [<some day timestamp>]: 0,
+                 *     [<next day timestamp>]: 1,
+                 *     [<next next day timestamp>]: 2,
                  * }
                  * Not array for clarity
                  */
@@ -771,8 +771,8 @@ router.get(
                 });
 
                 return res.json({
-                    // Because keys are numbers,
-                    // timestamps will be sorted from start to end dates
+                    // Because keys are numbers, timestamps will be sorted
+                    // from start to end dates by Object.keys transformation
                     days: Object.keys(timestampToIndexMap)
                         .map((timestamp) => Number(timestamp)),
 
