@@ -62,7 +62,7 @@ router.get(
             return res.status(400).json({ message: 'Некорректный год' })
         }
 
-        if (month >= 12 || !isNaturalNumber(month)) {
+        if (month < 0 || month > 11 || month - Math.trunc(month) !== 0) {
             return res.status(400).json({ message: 'Некорректный месяц' })
         }
 
